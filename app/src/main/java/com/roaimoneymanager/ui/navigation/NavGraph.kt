@@ -5,7 +5,7 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -16,7 +16,6 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import com.roaimoneymanager.ui.screens.*
-import com.roaimoneymanager.ui.theme.GreenPrimary
 import com.roaimoneymanager.ui.viewmodel.MainViewModel
 
 @Composable
@@ -58,7 +57,10 @@ fun MainAppNavigation(
                             Text(
                                 text = screen.title,
                                 fontSize = 10.sp,
-                                fontWeight = if (selected) FontWeight.Bold else FontWeight.Normal
+                                fontWeight = if (selected) FontWeight.Bold else FontWeight.Normal,
+                                fontFamily = FontFamily.Default,
+                                maxLines = 1,
+                                softWrap = false
                             )
                         },
                         colors = NavigationBarItemDefaults.colors(
@@ -88,7 +90,10 @@ fun MainAppNavigation(
             }
 
             composable(Screen.Transactions.route) {
-                TransactionsScreen(viewModel = viewModel)
+                TransactionsScreen(
+                    viewModel = viewModel,
+                    onNavigateToImport = { navController.navigate(Screen.StatementImport.route) }
+                )
             }
 
             composable(Screen.Work.route) {
@@ -105,6 +110,20 @@ fun MainAppNavigation(
 
             composable(Screen.Settings.route) {
                 SettingsScreen(viewModel = viewModel)
+            }
+
+            composable(Screen.StatementImport.route) {
+                StatementImportReviewScreen(
+                    viewModel = viewModel,
+                    onFinishImport = {
+                        viewModel.resetStatementImportState()
+                        navController.popBackStack()
+                    },
+                    onCancelImport = {
+                        viewModel.resetStatementImportState()
+                        navController.popBackStack()
+                    }
+                )
             }
         }
     }

@@ -19,6 +19,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.roaimoneymanager.data.preferences.OpeningBalances
@@ -43,7 +44,7 @@ fun MainBalanceCard(
     ) {
         Column(
             modifier = Modifier
-                .padding(24.dp)
+                .padding(20.dp)
                 .fillMaxWidth()
         ) {
             Row(
@@ -52,8 +53,8 @@ fun MainBalanceCard(
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Text(
-                    text = "TOTAL AVAILABLE BALANCE",
-                    color = Color.White.copy(alpha = 0.8f),
+                    text = "AVAILABLE BALANCE",
+                    color = Color.White.copy(alpha = 0.85f),
                     fontSize = 12.sp,
                     fontWeight = FontWeight.Bold,
                     letterSpacing = 1.sp
@@ -87,49 +88,51 @@ fun MainBalanceCard(
             Text(
                 text = MoneyUtils.formatPaiseToRupees(summary.availableBalancePaise),
                 color = Color.White,
-                fontSize = 36.sp,
-                fontWeight = FontWeight.Bold
+                fontSize = 32.sp,
+                fontWeight = FontWeight.Bold,
+                maxLines = 1,
+                softWrap = false
             )
 
-            Spacer(Modifier.height(6.dp))
+            Spacer(Modifier.height(4.dp))
 
             Text(
                 text = "Includes Opening Balances + Actual Cash Flow",
-                color = Color.White.copy(alpha = 0.8f),
-                fontSize = 12.sp
+                color = Color.White.copy(alpha = 0.85f),
+                fontSize = 11.sp
             )
 
             // Collapsible Opening Balance Breakdown
             AnimatedVisibility(visible = expandedOpening) {
                 Column(
                     modifier = Modifier
-                        .padding(top = 16.dp)
+                        .padding(top = 14.dp)
                         .fillMaxWidth()
                         .clip(RoundedCornerShape(16.dp))
                         .background(Color.White.copy(alpha = 0.15f))
-                        .padding(14.dp)
+                        .padding(12.dp)
                 ) {
                     Text(
                         text = "Opening Balances Breakdown",
                         color = Color.White,
                         fontWeight = FontWeight.Bold,
-                        fontSize = 13.sp
+                        fontSize = 12.sp
                     )
                     Spacer(Modifier.height(8.dp))
                     Row(
                         modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceBetween
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
-                        OpeningRow(icon = Icons.Default.AccountBalanceWallet, label = "Cash Wallet", amount = openingBalances.cashPaise)
-                        OpeningRow(icon = Icons.Default.AccountBalance, label = "Bank Account", amount = openingBalances.bankPaise)
-                        OpeningRow(icon = Icons.Default.QrCodeScanner, label = "UPI Wallet", amount = openingBalances.upiPaise)
+                        OpeningRow(icon = Icons.Default.AccountBalanceWallet, label = "Cash", amount = openingBalances.cashPaise, modifier = Modifier.weight(1f))
+                        OpeningRow(icon = Icons.Default.AccountBalance, label = "Bank", amount = openingBalances.bankPaise, modifier = Modifier.weight(1f))
+                        OpeningRow(icon = Icons.Default.QrCodeScanner, label = "UPI", amount = openingBalances.upiPaise, modifier = Modifier.weight(1f))
                     }
-                    Spacer(Modifier.height(8.dp))
+                    Spacer(Modifier.height(6.dp))
                     TextButton(
                         onClick = onSetupBalancesClick,
                         modifier = Modifier.align(Alignment.End)
                     ) {
-                        Text("Edit Opening Balances", color = Color.White, fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                        Text("Edit Opening Balances", color = Color.White, fontSize = 11.sp, fontWeight = FontWeight.Bold)
                     }
                 }
             }
@@ -138,12 +141,34 @@ fun MainBalanceCard(
 }
 
 @Composable
-fun OpeningRow(icon: ImageVector, label: String, amount: Long) {
-    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+fun OpeningRow(
+    icon: ImageVector,
+    label: String,
+    amount: Long,
+    modifier: Modifier = Modifier
+) {
+    Column(
+        horizontalAlignment = Alignment.CenterHorizontally,
+        modifier = modifier
+    ) {
         Icon(imageVector = icon, contentDescription = label, tint = Color.White, modifier = Modifier.size(18.dp))
         Spacer(Modifier.height(2.dp))
-        Text(text = label, color = Color.White.copy(0.8f), fontSize = 10.sp)
-        Text(text = MoneyUtils.formatPaiseToRupees(amount), color = Color.White, fontWeight = FontWeight.Bold, fontSize = 12.sp)
+        Text(
+            text = label,
+            color = Color.White.copy(0.85f),
+            fontSize = 11.sp,
+            maxLines = 1,
+            softWrap = false
+        )
+        Spacer(Modifier.height(2.dp))
+        Text(
+            text = MoneyUtils.formatPaiseToRupees(amount),
+            color = Color.White,
+            fontWeight = FontWeight.Bold,
+            fontSize = 12.sp,
+            maxLines = 1,
+            softWrap = false
+        )
     }
 }
 
@@ -154,7 +179,7 @@ fun IncomeExpenseSummaryRow(
 ) {
     Row(
         modifier = modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.spacedBy(12.dp)
+        horizontalArrangement = Arrangement.spacedBy(10.dp)
     ) {
         SummaryMetricCard(
             title = "Total Income",
@@ -188,12 +213,31 @@ fun SummaryMetricCard(
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
         elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
     ) {
-        Column(modifier = Modifier.padding(16.dp)) {
-            Text(title, color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 13.sp)
-            Spacer(Modifier.height(6.dp))
-            Text(amount, color = amountColor, fontSize = 20.sp, fontWeight = FontWeight.Bold)
+        Column(modifier = Modifier.padding(14.dp)) {
+            Text(
+                text = title,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                fontSize = 12.sp,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis
+            )
             Spacer(Modifier.height(4.dp))
-            Text(subtitle, color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 11.sp)
+            Text(
+                text = amount,
+                color = amountColor,
+                fontSize = 18.sp,
+                fontWeight = FontWeight.Bold,
+                maxLines = 1,
+                softWrap = false
+            )
+            Spacer(Modifier.height(2.dp))
+            Text(
+                text = subtitle,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                fontSize = 10.sp,
+                maxLines = 1,
+                softWrap = false
+            )
         }
     }
 }

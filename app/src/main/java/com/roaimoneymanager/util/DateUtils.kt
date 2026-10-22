@@ -2,7 +2,6 @@ package com.roaimoneymanager.util
 
 import java.text.SimpleDateFormat
 import java.util.Calendar
-import java.util.Date
 import java.util.Locale
 
 object DateUtils {
@@ -13,19 +12,19 @@ object DateUtils {
     private val shortDateFormat = SimpleDateFormat("dd/MM/yyyy", Locale.getDefault())
 
     fun formatDate(timeMillis: Long): String {
-        return dateFormat.format(Date(timeMillis))
+        return dateFormat.format(timeMillis)
     }
 
     fun formatDateTime(timeMillis: Long): String {
-        return dateTimeFormat.format(Date(timeMillis))
+        return dateTimeFormat.format(timeMillis)
     }
 
     fun formatMonthYear(timeMillis: Long): String {
-        return monthYearFormat.format(Date(timeMillis))
+        return monthYearFormat.format(timeMillis)
     }
 
     fun formatShortDate(timeMillis: Long): String {
-        return shortDateFormat.format(Date(timeMillis))
+        return shortDateFormat.format(timeMillis)
     }
 
     fun getStartOfDay(timeMillis: Long = System.currentTimeMillis()): Long {

@@ -207,15 +207,17 @@ fun DashboardScreen(
             } else {
                 Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
                     recentList.forEach { tx ->
+                        val onClickLambda = remember(tx.id) { {
+                            editingTx = tx
+                            showAddTxDialog = true
+                        } }
+                        val onDeleteLambda = remember(tx.id) { {
+                            viewModel.deleteTransaction(tx)
+                        } }
                         TransactionItem(
                             transaction = tx,
-                            onClick = {
-                                editingTx = tx
-                                showAddTxDialog = true
-                            },
-                            onDelete = {
-                                viewModel.deleteTransaction(tx)
-                            }
+                            onClick = onClickLambda,
+                            onDelete = onDeleteLambda
                         )
                     }
                 }
@@ -309,7 +311,7 @@ fun DashboardScreen(
                 }
             }
 
-            Spacer(Modifier.height(30.dp))
+            Spacer(Modifier.height(100.dp))
         }
     }
 
@@ -360,7 +362,7 @@ fun QuickActionButton(
 ) {
     Button(
         onClick = onClick,
-        modifier = modifier.height(52.dp),
+        modifier = modifier.height(48.dp),
         shape = RoundedCornerShape(14.dp),
         colors = ButtonDefaults.buttonColors(
             containerColor = bgColor,
@@ -368,6 +370,6 @@ fun QuickActionButton(
         ),
         contentPadding = PaddingValues(horizontal = 4.dp)
     ) {
-        Text(title, fontWeight = FontWeight.Bold, fontSize = 13.sp)
+        Text(title, fontWeight = FontWeight.Bold, fontSize = 12.sp, maxLines = 1)
     }
 }

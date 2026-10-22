@@ -1,26 +1,31 @@
 package com.roaimoneymanager.ui.components
 
+import android.graphics.BitmapFactory
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.ArrowDropDown
-import androidx.compose.material.icons.filled.ArrowDropUp
 import androidx.compose.material.icons.filled.CalendarToday
 import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.asImageBitmap
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
@@ -74,7 +79,7 @@ fun AddEditTransactionDialog(
                 .fillMaxWidth(0.92f)
                 .padding(16.dp),
             shape = RoundedCornerShape(24.dp),
-            colors = CardDefaults.cardColors(containerColor = CardWhite)
+            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
         ) {
             Column(
                 modifier = Modifier
@@ -90,10 +95,10 @@ fun AddEditTransactionDialog(
                         text = if (transaction == null) "Add Transaction" else "Edit Transaction",
                         fontWeight = FontWeight.Bold,
                         fontSize = 20.sp,
-                        color = DarkText
+                        color = MaterialTheme.colorScheme.onSurface
                     )
                     IconButton(onClick = onDismiss) {
-                        Icon(Icons.Default.Close, contentDescription = "Close")
+                        Icon(Icons.Default.Close, contentDescription = "Close", tint = MaterialTheme.colorScheme.onSurface)
                     }
                 }
 
@@ -104,7 +109,7 @@ fun AddEditTransactionDialog(
                     modifier = Modifier
                         .fillMaxWidth()
                         .clip(RoundedCornerShape(14.dp))
-                        .background(BackgroundLight)
+                        .background(MaterialTheme.colorScheme.surfaceVariant)
                         .padding(4.dp)
                 ) {
                     TransactionType.entries.forEach { t ->
@@ -136,7 +141,7 @@ fun AddEditTransactionDialog(
                         ) {
                             Text(
                                 text = btnText,
-                                color = if (isSelected) Color.White else DarkText,
+                                color = if (isSelected) Color.White else MaterialTheme.colorScheme.onSurface,
                                 fontWeight = FontWeight.Bold,
                                 fontSize = 13.sp
                             )
@@ -203,24 +208,20 @@ fun AddEditTransactionDialog(
 
                 Spacer(Modifier.height(12.dp))
 
-                // Payment Method
-                Text("Payment Method", fontSize = 13.sp, fontWeight = FontWeight.Medium, color = GraySubtitle)
+                // Payment Method (UPI Only)
+                Text("Payment Method", fontSize = 13.sp, fontWeight = FontWeight.Medium, color = MaterialTheme.colorScheme.onSurfaceVariant)
                 Spacer(Modifier.height(6.dp))
-
-                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    PaymentMethod.entries.forEach { pm ->
-                        val selected = paymentMethod == pm
-                        FilterChip(
-                            selected = selected,
-                            onClick = { paymentMethod = pm },
-                            label = { Text(pm.name) },
-                            colors = FilterChipDefaults.filterChipColors(
-                                selectedContainerColor = GreenLight,
-                                selectedLabelColor = GreenPrimary
-                            )
-                        )
-                    }
-                }
+                FilterChip(
+                    selected = true,
+                    onClick = {},
+                    label = { Text("UPI") },
+                    colors = FilterChipDefaults.filterChipColors(
+                        containerColor = GreenLight,
+                        labelColor = GreenPrimary,
+                        selectedContainerColor = GreenLight,
+                        selectedLabelColor = GreenPrimary
+                    )
+                )
 
                 Spacer(Modifier.height(12.dp))
 
@@ -230,7 +231,7 @@ fun AddEditTransactionDialog(
                     horizontalArrangement = Arrangement.SpaceBetween,
                     modifier = Modifier.fillMaxWidth()
                 ) {
-                    Text("Payment Completed", fontSize = 14.sp, fontWeight = FontWeight.Medium)
+                    Text("Payment Completed", fontSize = 14.sp, fontWeight = FontWeight.Medium, color = MaterialTheme.colorScheme.onSurface)
                     Switch(
                         checked = status == TransactionStatus.COMPLETED,
                         onCheckedChange = { isChecked ->
@@ -383,7 +384,6 @@ fun AddEditWorkShiftDialog(
                 )
                 Spacer(Modifier.height(14.dp))
 
-                // Platform / Source Field (Editable Text Field)
                 OutlinedTextField(
                     value = platform,
                     onValueChange = { platform = it },
@@ -395,7 +395,6 @@ fun AddEditWorkShiftDialog(
 
                 Spacer(Modifier.height(10.dp))
 
-                // Work Date Selection Field
                 OutlinedTextField(
                     value = DateUtils.formatDate(selectedDateMillis),
                     onValueChange = {},
@@ -557,12 +556,12 @@ fun SetupOpeningBalancesDialog(
                 .fillMaxWidth()
                 .padding(16.dp),
             shape = RoundedCornerShape(24.dp),
-            colors = CardDefaults.cardColors(containerColor = CardWhite)
+            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
         ) {
             Column(modifier = Modifier.padding(20.dp)) {
-                Text("Set Opening Balances", fontWeight = FontWeight.Bold, fontSize = 18.sp)
+                Text("Set Opening Balances", fontWeight = FontWeight.Bold, fontSize = 18.sp, color = MaterialTheme.colorScheme.onSurface)
                 Spacer(Modifier.height(8.dp))
-                Text("Enter existing cash and bank balances to calculate accurate total available balance.", fontSize = 12.sp, color = GraySubtitle)
+                Text("Enter existing cash and bank balances to calculate accurate total available balance.", fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
                 Spacer(Modifier.height(14.dp))
 
                 OutlinedTextField(
@@ -624,12 +623,19 @@ fun AddEditSavingsGoalDialog(
 
     Dialog(onDismissRequest = onDismiss) {
         Card(
-            modifier = Modifier.fillMaxWidth().padding(16.dp),
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(16.dp),
             shape = RoundedCornerShape(24.dp),
-            colors = CardDefaults.cardColors(containerColor = CardWhite)
+            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
         ) {
-            Column(modifier = Modifier.padding(20.dp)) {
-                Text(if (goal == null) "New Savings Goal" else "Edit Savings Goal", fontWeight = FontWeight.Bold, fontSize = 18.sp)
+            Column(
+                modifier = Modifier
+                    .imePadding()
+                    .verticalScroll(rememberScrollState())
+                    .padding(20.dp)
+            ) {
+                Text(if (goal == null) "New Savings Goal" else "Edit Savings Goal", fontWeight = FontWeight.Bold, fontSize = 18.sp, color = MaterialTheme.colorScheme.onSurface)
                 Spacer(Modifier.height(14.dp))
 
                 OutlinedTextField(value = title, onValueChange = { title = it }, label = { Text("Goal Name") }, placeholder = { Text("e.g. New Laptop, Emergency Fund") }, modifier = Modifier.fillMaxWidth())
@@ -637,6 +643,22 @@ fun AddEditSavingsGoalDialog(
                 OutlinedTextField(value = targetAmount, onValueChange = { targetAmount = it }, label = { Text("Target Amount (₹)") }, keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number), modifier = Modifier.fillMaxWidth())
                 Spacer(Modifier.height(8.dp))
                 OutlinedTextField(value = currentSaved, onValueChange = { currentSaved = it }, label = { Text("Already Saved (₹)") }, keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number), modifier = Modifier.fillMaxWidth())
+
+                // Live Progress Preview Feedback
+                val targetPaise = MoneyUtils.parseRupeesToPaise(targetAmount)
+                val savedPaise = MoneyUtils.parseRupeesToPaise(currentSaved)
+                if (targetPaise > 0L) {
+                    Spacer(Modifier.height(8.dp))
+                    val remainingPaise = (targetPaise - savedPaise).coerceAtLeast(0L)
+                    val percent = ((savedPaise.toFloat() / targetPaise.toFloat()) * 100f).coerceIn(0f, 100f).toInt()
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween
+                    ) {
+                        Text("Progress: $percent%", fontSize = 12.sp, fontWeight = FontWeight.Bold, color = IncomeGreen)
+                        Text("Remaining: ${MoneyUtils.formatPaiseToRupees(remainingPaise)}", fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    }
+                }
 
                 if (errorMsg != null) {
                     Spacer(Modifier.height(8.dp))
@@ -679,12 +701,19 @@ fun DepositWithdrawGoalDialog(
 
     Dialog(onDismissRequest = onDismiss) {
         Card(
-            modifier = Modifier.fillMaxWidth().padding(16.dp),
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(16.dp),
             shape = RoundedCornerShape(24.dp),
-            colors = CardDefaults.cardColors(containerColor = CardWhite)
+            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
         ) {
-            Column(modifier = Modifier.padding(20.dp)) {
-                Text(if (isDeposit) "Add Money to ${goal.title}" else "Withdraw from ${goal.title}", fontWeight = FontWeight.Bold, fontSize = 18.sp)
+            Column(
+                modifier = Modifier
+                    .imePadding()
+                    .verticalScroll(rememberScrollState())
+                    .padding(20.dp)
+            ) {
+                Text(if (isDeposit) "Add Money to ${goal.title}" else "Withdraw from ${goal.title}", fontWeight = FontWeight.Bold, fontSize = 18.sp, color = MaterialTheme.colorScheme.onSurface)
                 Spacer(Modifier.height(12.dp))
 
                 OutlinedTextField(
@@ -734,12 +763,19 @@ fun AddEditDebtDialog(
 
     Dialog(onDismissRequest = onDismiss) {
         Card(
-            modifier = Modifier.fillMaxWidth().padding(16.dp),
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(16.dp),
             shape = RoundedCornerShape(24.dp),
-            colors = CardDefaults.cardColors(containerColor = CardWhite)
+            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
         ) {
-            Column(modifier = Modifier.padding(20.dp)) {
-                Text(if (debt == null) "Track Money Owed" else "Edit Money Record", fontWeight = FontWeight.Bold, fontSize = 18.sp)
+            Column(
+                modifier = Modifier
+                    .imePadding()
+                    .verticalScroll(rememberScrollState())
+                    .padding(20.dp)
+            ) {
+                Text(if (debt == null) "Track Money Owed" else "Edit Money Record", fontWeight = FontWeight.Bold, fontSize = 18.sp, color = MaterialTheme.colorScheme.onSurface)
                 Spacer(Modifier.height(14.dp))
 
                 Row(modifier = Modifier.fillMaxWidth()) {
@@ -798,30 +834,42 @@ fun DebtRepaymentDialog(
     onSaveRepayment: (amountStr: String, method: PaymentMethod) -> Unit
 ) {
     var amount by remember { mutableStateOf(MoneyUtils.formatPaiseToRupees(debt.remainingPaise, showSymbol = false)) }
-    var method by remember { mutableStateOf(PaymentMethod.UPI) }
     var errorMsg by remember { mutableStateOf<String?>(null) }
 
     Dialog(onDismissRequest = onDismiss) {
         Card(
-            modifier = Modifier.fillMaxWidth().padding(16.dp),
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(16.dp),
             shape = RoundedCornerShape(24.dp),
-            colors = CardDefaults.cardColors(containerColor = CardWhite)
+            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
         ) {
-            Column(modifier = Modifier.padding(20.dp)) {
-                Text("Record Repayment for ${debt.personName}", fontWeight = FontWeight.Bold, fontSize = 18.sp)
+            Column(
+                modifier = Modifier
+                    .imePadding()
+                    .verticalScroll(rememberScrollState())
+                    .padding(20.dp)
+            ) {
+                Text("Record Repayment for ${debt.personName}", fontWeight = FontWeight.Bold, fontSize = 18.sp, color = MaterialTheme.colorScheme.onSurface)
                 Spacer(Modifier.height(6.dp))
-                Text("Remaining Owed: ${MoneyUtils.formatPaiseToRupees(debt.remainingPaise)}", fontSize = 13.sp, color = GraySubtitle)
+                Text("Remaining Owed: ${MoneyUtils.formatPaiseToRupees(debt.remainingPaise)}", fontSize = 13.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
                 Spacer(Modifier.height(14.dp))
 
                 OutlinedTextField(value = amount, onValueChange = { amount = it }, label = { Text("Repayment Amount (₹)") }, keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number), modifier = Modifier.fillMaxWidth())
                 Spacer(Modifier.height(10.dp))
 
-                Text("Payment Method", fontSize = 12.sp, color = GraySubtitle)
-                Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                    PaymentMethod.entries.forEach { m ->
-                        FilterChip(selected = method == m, onClick = { method = m }, label = { Text(m.name) })
-                    }
-                }
+                Text("Payment Method", fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                FilterChip(
+                    selected = true,
+                    onClick = {},
+                    label = { Text("UPI") },
+                    colors = FilterChipDefaults.filterChipColors(
+                        containerColor = GreenLight,
+                        labelColor = GreenPrimary,
+                        selectedContainerColor = GreenLight,
+                        selectedLabelColor = GreenPrimary
+                    )
+                )
 
                 if (errorMsg != null) {
                     Spacer(Modifier.height(8.dp))
@@ -835,7 +883,7 @@ fun DebtRepaymentDialog(
                             errorMsg = "Enter valid amount > ₹0"
                             return@Button
                         }
-                        onSaveRepayment(amount, method)
+                        onSaveRepayment(amount, PaymentMethod.UPI)
                     },
                     modifier = Modifier.fillMaxWidth().height(48.dp),
                     shape = RoundedCornerShape(12.dp),
@@ -859,12 +907,19 @@ fun AddCategoryDialog(
 
     Dialog(onDismissRequest = onDismiss) {
         Card(
-            modifier = Modifier.fillMaxWidth().padding(16.dp),
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(16.dp),
             shape = RoundedCornerShape(24.dp),
-            colors = CardDefaults.cardColors(containerColor = CardWhite)
+            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
         ) {
-            Column(modifier = Modifier.padding(20.dp)) {
-                Text("Add Custom Category", fontWeight = FontWeight.Bold, fontSize = 18.sp)
+            Column(
+                modifier = Modifier
+                    .imePadding()
+                    .verticalScroll(rememberScrollState())
+                    .padding(20.dp)
+            ) {
+                Text("Add Custom Category", fontWeight = FontWeight.Bold, fontSize = 18.sp, color = MaterialTheme.colorScheme.onSurface)
                 Spacer(Modifier.height(14.dp))
 
                 Row(modifier = Modifier.fillMaxWidth()) {
@@ -899,3 +954,361 @@ fun AddCategoryDialog(
         }
     }
 }
+
+@Composable
+fun AddEditBudgetDialog(
+    budget: BudgetEntity? = null,
+    categories: List<CategoryEntity> = emptyList(),
+    onDismiss: () -> Unit,
+    onSave: (id: Long, category: String, limitAmount: String, notes: String) -> Unit
+) {
+    var category by remember { mutableStateOf(budget?.category ?: "") }
+    var limitAmount by remember { mutableStateOf(budget?.let { MoneyUtils.formatPaiseToRupees(it.limitAmountPaise, showSymbol = false) } ?: "") }
+    var notes by remember { mutableStateOf(budget?.notes ?: "") }
+    var errorMsg by remember { mutableStateOf<String?>(null) }
+
+    Dialog(onDismissRequest = onDismiss) {
+        Card(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(16.dp),
+            shape = RoundedCornerShape(24.dp),
+            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
+        ) {
+            Column(modifier = Modifier.padding(20.dp)) {
+                Text(
+                    text = if (budget == null) "Set Monthly Budget" else "Edit Monthly Budget",
+                    fontWeight = FontWeight.Bold,
+                    fontSize = 18.sp,
+                    color = MaterialTheme.colorScheme.onSurface
+                )
+                Spacer(Modifier.height(14.dp))
+
+                OutlinedTextField(
+                    value = category,
+                    onValueChange = { category = it },
+                    label = { Text("Category Name") },
+                    placeholder = { Text("e.g. Food, Petrol, Shopping, College, Bills") },
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(12.dp)
+                )
+
+                Spacer(Modifier.height(10.dp))
+
+                OutlinedTextField(
+                    value = limitAmount,
+                    onValueChange = { limitAmount = it },
+                    label = { Text("Monthly Limit Amount (₹)") },
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(12.dp)
+                )
+
+                if (errorMsg != null) {
+                    Spacer(Modifier.height(8.dp))
+                    Text(errorMsg!!, color = ExpenseRed, fontSize = 12.sp)
+                }
+
+                Spacer(Modifier.height(20.dp))
+
+                Button(
+                    onClick = {
+                        if (category.isBlank()) {
+                            errorMsg = "Category name cannot be empty"
+                            return@Button
+                        }
+                        if (!MoneyUtils.isValidAmount(limitAmount)) {
+                            errorMsg = "Enter valid limit amount > ₹0"
+                            return@Button
+                        }
+                        onSave(budget?.id ?: 0L, category, limitAmount, notes)
+                    },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(48.dp),
+                    shape = RoundedCornerShape(12.dp),
+                    colors = ButtonDefaults.buttonColors(containerColor = GreenPrimary)
+                ) {
+                    Text(if (budget == null) "Save Budget" else "Update Budget", fontWeight = FontWeight.Bold)
+                }
+            }
+        }
+    }
+}
+
+@Composable
+fun AddEditInvestmentDialog(
+    holding: InvestmentHoldingEntity? = null,
+    onDismiss: () -> Unit,
+    onSave: (
+        id: Long,
+        name: String,
+        type: String,
+        provider: String?,
+        accountReference: String?,
+        initialAmount: String,
+        units: String,
+        nav: String,
+        currentValue: String,
+        notes: String
+    ) -> Unit
+) {
+    var name by remember { mutableStateOf(holding?.name ?: "") }
+    var type by remember { mutableStateOf(holding?.type ?: "Mutual Funds") }
+    var provider by remember { mutableStateOf(holding?.provider ?: "") }
+    var accountReference by remember { mutableStateOf(holding?.accountReference ?: "") }
+    var initialAmount by remember { mutableStateOf(holding?.let { MoneyUtils.formatPaiseToRupees(it.investedCostPaise, showSymbol = false) } ?: "") }
+    var units by remember { mutableStateOf(holding?.let { if (it.units > 0.0) it.units.toString() else "" } ?: "") }
+    var nav by remember { mutableStateOf(holding?.let { if (it.nav > 0.0) it.nav.toString() else "" } ?: "") }
+    var currentValue by remember { mutableStateOf(holding?.let { MoneyUtils.formatPaiseToRupees(it.currentValuePaise, showSymbol = false) } ?: "") }
+    var notes by remember { mutableStateOf(holding?.notes ?: "") }
+    var errorMsg by remember { mutableStateOf<String?>(null) }
+
+    Dialog(onDismissRequest = onDismiss) {
+        Card(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(16.dp),
+            shape = RoundedCornerShape(24.dp),
+            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
+        ) {
+            Column(
+                modifier = Modifier
+                    .imePadding()
+                    .verticalScroll(rememberScrollState())
+                    .padding(20.dp)
+            ) {
+                Text(
+                    text = if (holding == null) "Add Investment" else "Edit Investment",
+                    fontWeight = FontWeight.Bold,
+                    fontSize = 18.sp,
+                    color = MaterialTheme.colorScheme.onSurface
+                )
+                Spacer(Modifier.height(14.dp))
+
+                OutlinedTextField(
+                    value = name,
+                    onValueChange = { name = it },
+                    label = { Text("Investment Name") },
+                    placeholder = { Text("e.g. Nifty 50 Index Fund, Gold ETF, TCS") },
+                    modifier = Modifier.fillMaxWidth()
+                )
+                Spacer(Modifier.height(8.dp))
+                OutlinedTextField(
+                    value = type,
+                    onValueChange = { type = it },
+                    label = { Text("Investment Type (Custom)") },
+                    placeholder = { Text("e.g. Mutual Funds, Gold, Stocks, Real Estate") },
+                    modifier = Modifier.fillMaxWidth()
+                )
+                Spacer(Modifier.height(8.dp))
+                OutlinedTextField(
+                    value = provider,
+                    onValueChange = { provider = it },
+                    label = { Text("Provider / Broker (Optional)") },
+                    placeholder = { Text("e.g. Groww, Zerodha, HDFC") },
+                    modifier = Modifier.fillMaxWidth()
+                )
+                Spacer(Modifier.height(8.dp))
+                OutlinedTextField(
+                    value = initialAmount,
+                    onValueChange = { initialAmount = it },
+                    label = { Text("Invested Amount / Cost Basis (₹)") },
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                    modifier = Modifier.fillMaxWidth()
+                )
+                Spacer(Modifier.height(8.dp))
+                OutlinedTextField(
+                    value = currentValue,
+                    onValueChange = { currentValue = it },
+                    label = { Text("Current Market Value (₹) (Optional)") },
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                    modifier = Modifier.fillMaxWidth()
+                )
+                Spacer(Modifier.height(8.dp))
+                OutlinedTextField(
+                    value = units,
+                    onValueChange = { units = it },
+                    label = { Text("Units / Quantity (Optional)") },
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                    modifier = Modifier.fillMaxWidth()
+                )
+                Spacer(Modifier.height(8.dp))
+                OutlinedTextField(
+                    value = notes,
+                    onValueChange = { notes = it },
+                    label = { Text("Notes (Optional)") },
+                    modifier = Modifier.fillMaxWidth()
+                )
+
+                if (errorMsg != null) {
+                    Spacer(Modifier.height(8.dp))
+                    Text(errorMsg!!, color = ExpenseRed, fontSize = 12.sp)
+                }
+
+                Spacer(Modifier.height(20.dp))
+                Button(
+                    onClick = {
+                        if (name.isBlank()) {
+                            errorMsg = "Investment name cannot be empty"
+                            return@Button
+                        }
+                        if (type.isBlank()) {
+                            errorMsg = "Investment type cannot be empty"
+                            return@Button
+                        }
+                        if (!MoneyUtils.isValidAmount(initialAmount)) {
+                            errorMsg = "Enter valid invested amount > ₹0"
+                            return@Button
+                        }
+                        onSave(
+                            holding?.id ?: 0L,
+                            name,
+                            type,
+                            provider,
+                            accountReference,
+                            initialAmount,
+                            units,
+                            nav,
+                            currentValue,
+                            notes
+                        )
+                    },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(48.dp),
+                    shape = RoundedCornerShape(12.dp),
+                    colors = ButtonDefaults.buttonColors(containerColor = GreenPrimary)
+                ) {
+                    Text("Save Investment", fontWeight = FontWeight.Bold)
+                }
+            }
+        }
+    }
+}
+
+@Composable
+fun InvestmentActivityDialog(
+    holding: InvestmentHoldingEntity,
+    onDismiss: () -> Unit,
+    onSubmit: (
+        activityType: InvestmentActivityType,
+        amount: String,
+        units: String,
+        nav: String,
+        notes: String
+    ) -> Unit
+) {
+    var activityType by remember { mutableStateOf(InvestmentActivityType.VALUATION_UPDATE) }
+    var amount by remember { mutableStateOf(MoneyUtils.formatPaiseToRupees(holding.currentValuePaise, showSymbol = false)) }
+    var units by remember { mutableStateOf(if (holding.units > 0.0) holding.units.toString() else "") }
+    var nav by remember { mutableStateOf(if (holding.nav > 0.0) holding.nav.toString() else "") }
+    var notes by remember { mutableStateOf("") }
+    var errorMsg by remember { mutableStateOf<String?>(null) }
+
+    Dialog(onDismissRequest = onDismiss) {
+        Card(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(16.dp),
+            shape = RoundedCornerShape(24.dp),
+            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
+        ) {
+            Column(
+                modifier = Modifier
+                    .imePadding()
+                    .verticalScroll(rememberScrollState())
+                    .padding(20.dp)
+            ) {
+                Text(
+                    text = "Record Activity: ${holding.name}",
+                    fontWeight = FontWeight.Bold,
+                    fontSize = 18.sp,
+                    color = MaterialTheme.colorScheme.onSurface
+                )
+                Spacer(Modifier.height(14.dp))
+
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .horizontalScroll(rememberScrollState()),
+                    horizontalArrangement = Arrangement.spacedBy(6.dp)
+                ) {
+                    InvestmentActivityType.entries.forEach { act ->
+                        val selected = activityType == act
+                        FilterChip(
+                            selected = selected,
+                            onClick = {
+                                activityType = act
+                                when (act) {
+                                    InvestmentActivityType.VALUATION_UPDATE -> amount = MoneyUtils.formatPaiseToRupees(holding.currentValuePaise, showSymbol = false)
+                                    else -> amount = ""
+                                }
+                            },
+                            label = { Text(act.name.replace("_", " "), fontSize = 11.sp, maxLines = 1, softWrap = false) }
+                        )
+                    }
+                }
+
+                Spacer(Modifier.height(12.dp))
+
+                val labelText = when (activityType) {
+                    InvestmentActivityType.PURCHASE -> "Purchase Amount (₹)"
+                    InvestmentActivityType.REDEMPTION -> "Redemption Amount (₹)"
+                    InvestmentActivityType.DIVIDEND -> "Dividend Amount (₹)"
+                    InvestmentActivityType.VALUATION_UPDATE -> "New Total Market Value (₹)"
+                }
+
+                OutlinedTextField(
+                    value = amount,
+                    onValueChange = { amount = it },
+                    label = { Text(labelText) },
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                    modifier = Modifier.fillMaxWidth()
+                )
+
+                Spacer(Modifier.height(8.dp))
+                OutlinedTextField(
+                    value = units,
+                    onValueChange = { units = it },
+                    label = { Text("Units / Quantity (Optional)") },
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                    modifier = Modifier.fillMaxWidth()
+                )
+
+                Spacer(Modifier.height(8.dp))
+                OutlinedTextField(
+                    value = notes,
+                    onValueChange = { notes = it },
+                    label = { Text("Notes / Description") },
+                    modifier = Modifier.fillMaxWidth()
+                )
+
+                if (errorMsg != null) {
+                    Spacer(Modifier.height(8.dp))
+                    Text(errorMsg!!, color = ExpenseRed, fontSize = 12.sp)
+                }
+
+                Spacer(Modifier.height(20.dp))
+                Button(
+                    onClick = {
+                        if (!MoneyUtils.isValidAmount(amount) && activityType != InvestmentActivityType.VALUATION_UPDATE) {
+                            errorMsg = "Enter valid amount > ₹0"
+                            return@Button
+                        }
+                        onSubmit(activityType, amount, units, nav, notes)
+                    },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(48.dp),
+                    shape = RoundedCornerShape(12.dp),
+                    colors = ButtonDefaults.buttonColors(containerColor = GreenPrimary)
+                ) {
+                    Text("Record Activity", fontWeight = FontWeight.Bold)
+                }
+            }
+        }
+    }
+}
+
+

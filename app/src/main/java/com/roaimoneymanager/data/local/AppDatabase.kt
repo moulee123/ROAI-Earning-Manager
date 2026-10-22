@@ -6,6 +6,7 @@ import androidx.room.Room
 import androidx.room.RoomDatabase
 import androidx.room.TypeConverters
 import androidx.sqlite.db.SupportSQLiteDatabase
+import androidx.room.migration.Migration
 import com.roaimoneymanager.data.local.dao.*
 import com.roaimoneymanager.data.local.entity.*
 import kotlinx.coroutines.CoroutineScope
@@ -19,9 +20,12 @@ import kotlinx.coroutines.launch
         WorkShiftEntity::class,
         SavingsGoalEntity::class,
         DebtEntity::class,
-        DebtRepaymentEntity::class
+        DebtRepaymentEntity::class,
+        BudgetEntity::class,
+        InvestmentHoldingEntity::class,
+        InvestmentActivityEntity::class
     ],
-    version = 1,
+    version = 5,
     exportSchema = false
 )
 @TypeConverters(Converters::class)
@@ -32,10 +36,58 @@ abstract class AppDatabase : RoomDatabase() {
     abstract fun workShiftDao(): WorkShiftDao
     abstract fun savingsGoalDao(): SavingsGoalDao
     abstract fun debtDao(): DebtDao
+    abstract fun budgetDao(): BudgetDao
+    abstract fun investmentDao(): InvestmentDao
 
     companion object {
         @Volatile
         private var INSTANCE: AppDatabase? = null
+
+        val MIGRATION_2_3 = object : Migration(2, 3) {
+            override fun migrate(database: SupportSQLiteDatabase) {
+                database.execSQL("ALTER TABLE transactions ADD COLUMN originalDescription TEXT")
+                database.execSQL("ALTER TABLE transactions ADD COLUMN bankReference TEXT")
+            }
+        }
+
+        val MIGRATION_3_4 = object : Migration(3, 4) {
+            override fun migrate(database: SupportSQLiteDatabase) {
+                database.execSQL("""
+                    CREATE TABLE IF NOT EXISTS `investment_holdings` (
+                        `id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+                        `name` TEXT NOT NULL,
+                        `type` TEXT NOT NULL,
+                        `provider` TEXT,
+                        `accountReference` TEXT,
+                        `investedCostPaise` INTEGER NOT NULL,
+                        `currentValuePaise` INTEGER NOT NULL,
+                        `units` REAL NOT NULL,
+                        `nav` REAL NOT NULL,
+                        `lastValuationDateMillis` INTEGER NOT NULL,
+                        `notes` TEXT NOT NULL
+                    )
+                """)
+                database.execSQL("""
+                    CREATE TABLE IF NOT EXISTS `investment_activities` (
+                        `id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+                        `holdingId` INTEGER NOT NULL,
+                        `activityType` TEXT NOT NULL,
+                        `amountPaise` INTEGER NOT NULL,
+                        `units` REAL NOT NULL,
+                        `nav` REAL NOT NULL,
+                        `dateMillis` INTEGER NOT NULL,
+                        `linkedTransactionId` INTEGER,
+                        `notes` TEXT NOT NULL
+                    )
+                """)
+            }
+        }
+
+        val MIGRATION_4_5 = object : Migration(4, 5) {
+            override fun migrate(database: SupportSQLiteDatabase) {
+                database.execSQL("ALTER TABLE investment_holdings ADD COLUMN schemeCode TEXT")
+            }
+        }
 
         fun getDatabase(context: Context): AppDatabase {
             return INSTANCE ?: synchronized(this) {
@@ -44,6 +96,7 @@ abstract class AppDatabase : RoomDatabase() {
                     AppDatabase::class.java,
                     "roai_money_manager_db"
                 )
+                    .addMigrations(MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5)
                     .addCallback(DatabaseCallback())
                     .fallbackToDestructiveMigration()
                     .build()

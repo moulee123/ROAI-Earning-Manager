@@ -57,6 +57,14 @@ dependencies {
     // DataStore
     implementation(libs.datastore.preferences)
 
+    // WorkManager
+    implementation("androidx.work:work-runtime-ktx:2.10.0")
+
+    // PDF & OCR Extraction
+    implementation(libs.pdfbox.android)
+    implementation("com.google.mlkit:text-recognition:16.0.1")
+    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-play-services:1.11.0")
+
     testImplementation(libs.junit)
     androidTestImplementation(platform(libs.androidx.compose.bom))
     androidTestImplementation(libs.androidx.compose.ui.test.junit4)

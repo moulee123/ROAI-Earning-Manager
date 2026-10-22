@@ -21,5 +21,7 @@ data class TransactionEntity(
     val status: TransactionStatus = TransactionStatus.COMPLETED,
     val notes: String = "",
     val isWorkExpense: Boolean = false,
-    val relatedDebtId: Long? = null
+    val relatedDebtId: Long? = null,
+    val originalDescription: String? = null,
+    val bankReference: String? = null
 )

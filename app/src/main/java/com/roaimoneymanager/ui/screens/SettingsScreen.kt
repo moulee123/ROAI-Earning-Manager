@@ -139,24 +139,29 @@ fun SettingsScreen(
                     Icon(
                         imageVector = Icons.Default.Shield,
                         contentDescription = "Privacy",
-                        tint = GreenPrimary,
+                        tint = MaterialTheme.colorScheme.primary,
                         modifier = Modifier.size(28.dp)
                     )
                     Spacer(Modifier.width(14.dp))
                     Column {
-                        Text("100% Offline & Private", fontWeight = FontWeight.Bold, fontSize = 15.sp, color = GreenDark)
+                        Text(
+                            text = "100% Offline & Private",
+                            fontWeight = FontWeight.Bold,
+                            fontSize = 15.sp,
+                            color = MaterialTheme.colorScheme.onPrimaryContainer
+                        )
                         Spacer(Modifier.height(2.dp))
                         Text(
-                            "ROAI Money Manager stores all your financial data strictly on your device. Bank passwords and UPI PINs are never requested or stored.",
+                            text = "ROAI Money Manager stores all your financial data strictly on your device. Bank passwords and UPI PINs are never requested or stored.",
                             fontSize = 12.sp,
-                            color = GreenDark.copy(alpha = 0.85f),
+                            color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.85f),
                             lineHeight = 17.sp
                         )
                     }
                 }
             }
 
-            Spacer(Modifier.height(30.dp))
+            Spacer(Modifier.height(100.dp))
         }
     }
 
@@ -212,7 +217,11 @@ fun SettingsTile(
                     .background(MaterialTheme.colorScheme.primaryContainer),
                 contentAlignment = Alignment.Center
             ) {
-                Icon(imageVector = icon, contentDescription = title, tint = GreenPrimary)
+                Icon(
+                    imageVector = icon,
+                    contentDescription = title,
+                    tint = MaterialTheme.colorScheme.primary
+                )
             }
 
             Spacer(Modifier.width(14.dp))
@@ -226,7 +235,7 @@ fun SettingsTile(
             Icon(
                 imageVector = Icons.Default.ChevronRight,
                 contentDescription = "Navigate",
-                tint = Color.LightGray
+                tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f)
             )
         }
     }

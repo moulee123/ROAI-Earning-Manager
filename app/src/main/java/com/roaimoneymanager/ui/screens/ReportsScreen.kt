@@ -67,7 +67,7 @@ fun ReportsScreen(
 
     Surface(
         modifier = modifier.fillMaxSize(),
-        color = BackgroundLight
+        color = MaterialTheme.colorScheme.background
     ) {
         Column(
             modifier = Modifier
@@ -79,12 +79,12 @@ fun ReportsScreen(
                 text = "Financial Reports & Analytics",
                 fontSize = 24.sp,
                 fontWeight = FontWeight.Bold,
-                color = DarkText
+                color = MaterialTheme.colorScheme.onBackground
             )
             Text(
                 text = "Detailed breakdown of income, expenses & trends.",
                 fontSize = 13.sp,
-                color = GraySubtitle
+                color = MaterialTheme.colorScheme.onSurfaceVariant
             )
 
             Spacer(Modifier.height(16.dp))
@@ -94,7 +94,7 @@ fun ReportsScreen(
                 modifier = Modifier
                     .fillMaxWidth()
                     .clip(RoundedCornerShape(14.dp))
-                    .background(CardWhite)
+                    .background(MaterialTheme.colorScheme.surface)
                     .padding(4.dp),
                 horizontalArrangement = Arrangement.spacedBy(4.dp)
             ) {
@@ -111,7 +111,7 @@ fun ReportsScreen(
                     ) {
                         Text(
                             text = tf.name.lowercase().replaceFirstChar { it.uppercase() },
-                            color = if (isSelected) Color.White else DarkText,
+                            color = if (isSelected) Color.White else MaterialTheme.colorScheme.onSurface,
                             fontWeight = FontWeight.Bold,
                             fontSize = 12.sp
                         )
@@ -138,11 +138,16 @@ fun ReportsScreen(
             Card(
                 modifier = Modifier.fillMaxWidth(),
                 shape = RoundedCornerShape(20.dp),
-                colors = CardDefaults.cardColors(containerColor = CardWhite),
+                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
                 elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
             ) {
                 Column(modifier = Modifier.padding(20.dp)) {
-                    Text("Net Cash Flow & Savings", fontWeight = FontWeight.Bold, fontSize = 18.sp, color = DarkText)
+                    Text(
+                        text = "Net Cash Flow & Savings",
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 18.sp,
+                        color = MaterialTheme.colorScheme.onSurface
+                    )
                     Spacer(Modifier.height(12.dp))
 
                     Row(
@@ -150,7 +155,7 @@ fun ReportsScreen(
                         horizontalArrangement = Arrangement.SpaceBetween
                     ) {
                         Column(modifier = Modifier.weight(1f)) {
-                            Text("Net Cash Flow", fontSize = 12.sp, color = GraySubtitle)
+                            Text("Net Cash Flow", fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
                             val color = if (filteredNetCashFlowPaise >= 0) IncomeGreen else ExpenseRed
                             Text(
                                 text = MoneyUtils.formatPaiseToRupees(filteredNetCashFlowPaise),
@@ -163,7 +168,7 @@ fun ReportsScreen(
                         }
 
                         Column(horizontalAlignment = Alignment.End) {
-                            Text("Savings Rate", fontSize = 12.sp, color = GraySubtitle)
+                            Text("Savings Rate", fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
                             Text(
                                 text = "$filteredSavingsRate%",
                                 fontSize = 16.sp,
@@ -177,7 +182,7 @@ fun ReportsScreen(
                 }
             }
 
-            Spacer(Modifier.height(30.dp))
+            Spacer(Modifier.height(100.dp))
         }
     }
 }

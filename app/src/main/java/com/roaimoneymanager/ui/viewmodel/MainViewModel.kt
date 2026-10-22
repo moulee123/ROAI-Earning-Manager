@@ -1,6 +1,8 @@
 package com.roaimoneymanager.ui.viewmodel
 
 import android.app.Application
+import android.content.Context
+import android.net.Uri
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.roaimoneymanager.data.export.BackupRestoreManager
@@ -10,6 +12,11 @@ import com.roaimoneymanager.data.local.entity.*
 import com.roaimoneymanager.data.preferences.OpeningBalances
 import com.roaimoneymanager.data.preferences.UserPreferencesRepository
 import com.roaimoneymanager.data.repository.FinanceRepository
+import com.roaimoneymanager.data.statement.BalanceReconciliationService
+import com.roaimoneymanager.data.statement.DuplicateDetectionService
+import com.roaimoneymanager.data.statement.LocalPdfExtractor
+import com.roaimoneymanager.data.statement.UniversalStatementParser
+import java.io.File
 import com.roaimoneymanager.domain.calculator.FinancialCalculator
 import com.roaimoneymanager.domain.calculator.FinancialSummary
 import com.roaimoneymanager.domain.model.*
@@ -17,6 +24,8 @@ import com.roaimoneymanager.util.DateUtils
 import com.roaimoneymanager.util.MoneyUtils
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
+import java.text.SimpleDateFormat
+import java.util.Locale
 
 class MainViewModel(application: Application) : AndroidViewModel(application) {
 
@@ -40,8 +49,15 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     val allDebts: StateFlow<List<DebtEntity>> = repository.allDebts
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
+    val allBudgets: StateFlow<List<BudgetEntity>> = repository.allBudgets
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
+
     val openingBalances: StateFlow<OpeningBalances> = userPreferencesRepository.openingBalancesFlow
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), OpeningBalances())
+
+    // Statement Import State
+    private val _statementImportState = MutableStateFlow<StatementImportState>(StatementImportState.Idle)
+    val statementImportState: StateFlow<StatementImportState> = _statementImportState.asStateFlow()
 
     // Financial Summary State
     val financialSummary: StateFlow<FinancialSummary> = combine(
@@ -109,7 +125,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                 title = title.trim(),
                 category = category,
                 type = type,
-                paymentMethod = paymentMethod,
+                paymentMethod = PaymentMethod.UPI,
                 fromAccount = fromAccount,
                 toAccount = toAccount,
                 dateMillis = dateMillis,
@@ -133,6 +149,172 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         viewModelScope.launch {
             repository.deleteTransaction(transaction)
             _uiEvent.emit("Transaction deleted")
+        }
+    }
+
+    // Statement Import Workflows
+    fun resetStatementImportState() {
+        _statementImportState.value = StatementImportState.Idle
+    }
+
+    fun processStatementFile(context: Context, uri: Uri, fileName: String) {
+        viewModelScope.launch {
+            _statementImportState.value = StatementImportState.Processing("Reading and analyzing statement file locally...")
+
+            val parseResult = UniversalStatementParser.parseStatement(context, uri, fileName)
+            if (parseResult.candidates.isEmpty()) {
+                _statementImportState.value = StatementImportState.Error(parseResult.errorMessage ?: "No transactions found in the file.")
+                return@launch
+            }
+
+            _statementImportState.value = StatementImportState.Processing("Checking for duplicate transactions...")
+
+            val existingTxs = allTransactions.value
+            val analyzedCandidates = DuplicateDetectionService.analyzeDuplicates(parseResult.candidates, existingTxs)
+
+            val reconStatus = BalanceReconciliationService.checkReconciliation(analyzedCandidates)
+
+            val totalSelected = analyzedCandidates.count { it.isSelected }
+            val totalCredit = analyzedCandidates.filter { it.isSelected && it.isIncome }.sumOf { it.creditPaise }
+            val totalDebit = analyzedCandidates.filter { it.isSelected && !it.isIncome }.sumOf { it.debitPaise }
+            val likelyDupes = analyzedCandidates.count { it.duplicateConfidence == DuplicateConfidence.LIKELY_DUPLICATE }
+            val possibleDupes = analyzedCandidates.count { it.duplicateConfidence == DuplicateConfidence.POSSIBLE_DUPLICATE }
+            val needsReview = analyzedCandidates.count { it.needsReview }
+
+            val summary = StatementImportSummary(
+                bankName = parseResult.bankName,
+                fileName = fileName,
+                totalCandidates = analyzedCandidates.size,
+                totalSelected = totalSelected,
+                totalCreditPaise = totalCredit,
+                totalDebitPaise = totalDebit,
+                likelyDuplicateCount = likelyDupes,
+                possibleDuplicateCount = possibleDupes,
+                needsReviewCount = needsReview,
+                reconciliationStatus = reconStatus
+            )
+
+            _statementImportState.value = StatementImportState.Reviewing(
+                candidates = analyzedCandidates,
+                summary = summary
+            )
+        }
+    }
+
+    fun toggleCandidateSelection(candidateId: String) {
+        val currentState = _statementImportState.value
+        if (currentState is StatementImportState.Reviewing) {
+            val updatedList = currentState.candidates.map { c ->
+                if (c.id == candidateId) c.copy(isSelected = !c.isSelected) else c
+            }
+            updateReviewingState(currentState, updatedList)
+        }
+    }
+
+    fun selectAllCandidates(select: Boolean) {
+        val currentState = _statementImportState.value
+        if (currentState is StatementImportState.Reviewing) {
+            val updatedList = currentState.candidates.map { c -> c.copy(isSelected = select) }
+            updateReviewingState(currentState, updatedList)
+        }
+    }
+
+    fun deselectLikelyDuplicates() {
+        val currentState = _statementImportState.value
+        if (currentState is StatementImportState.Reviewing) {
+            val updatedList = currentState.candidates.map { c ->
+                if (c.duplicateConfidence == DuplicateConfidence.LIKELY_DUPLICATE) c.copy(isSelected = false) else c
+            }
+            updateReviewingState(currentState, updatedList)
+        }
+    }
+
+    fun updateCandidate(updatedCandidate: CandidateTransaction) {
+        val currentState = _statementImportState.value
+        if (currentState is StatementImportState.Reviewing) {
+            val updatedList = currentState.candidates.map { c ->
+                if (c.id == updatedCandidate.id) updatedCandidate else c
+            }
+            updateReviewingState(currentState, updatedList)
+        }
+    }
+
+    private fun updateReviewingState(
+        currentState: StatementImportState.Reviewing,
+        updatedList: List<CandidateTransaction>
+    ) {
+        val selected = updatedList.filter { it.isSelected }
+        val totalCredit = selected.filter { it.isIncome }.sumOf { it.creditPaise }
+        val totalDebit = selected.filter { !it.isIncome }.sumOf { it.debitPaise }
+
+        val newSummary = currentState.summary.copy(
+            totalSelected = selected.size,
+            totalCreditPaise = totalCredit,
+            totalDebitPaise = totalDebit
+        )
+
+        _statementImportState.value = StatementImportState.Reviewing(
+            candidates = updatedList,
+            summary = newSummary
+        )
+    }
+
+    fun confirmAndSaveImportedTransactions() {
+        val currentState = _statementImportState.value
+        if (currentState !is StatementImportState.Reviewing) return
+
+        viewModelScope.launch {
+            _statementImportState.value = StatementImportState.Processing("Saving imported transactions...")
+
+            val selectedCandidates = currentState.candidates.filter { it.isSelected }
+            if (selectedCandidates.isEmpty()) {
+                _statementImportState.value = StatementImportState.Error("No transactions selected for import.")
+                return@launch
+            }
+
+            var importedCount = 0
+            var totalCredit = 0L
+            var totalDebit = 0L
+
+            val bankName = currentState.summary.bankName
+
+            for (candidate in selectedCandidates) {
+                val isIncome = candidate.isIncome
+                val type = if (isIncome) TransactionType.INCOME else TransactionType.EXPENSE
+                val notesStr = buildString {
+                    if (candidate.notes.isNotBlank()) {
+                        append(candidate.notes)
+                        append(" | ")
+                    }
+                    append("Imported from $bankName.")
+                    if (!candidate.refNumber.isNullOrBlank()) {
+                        append(" Ref #${candidate.refNumber}")
+                    }
+                }
+
+                val tx = TransactionEntity(
+                    amountPaise = candidate.amountPaise,
+                    title = candidate.description, // User-edited Display Name
+                    category = candidate.category,
+                    type = type,
+                    paymentMethod = candidate.paymentMethod,
+                    dateMillis = candidate.dateMillis,
+                    status = TransactionStatus.COMPLETED,
+                    notes = notesStr,
+                    originalDescription = candidate.originalDescription,
+                    bankReference = candidate.refNumber
+                )
+
+                repository.insertTransaction(tx)
+                importedCount++
+                if (isIncome) totalCredit += candidate.amountPaise else totalDebit += candidate.amountPaise
+            }
+
+            _statementImportState.value = StatementImportState.Success(
+                importedCount = importedCount,
+                totalCreditPaise = totalCredit,
+                totalDebitPaise = totalDebit
+            )
         }
     }
 
@@ -175,7 +357,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                         title = "$platform Work Income",
                         category = "Work Income",
                         type = TransactionType.INCOME,
-                        paymentMethod = PaymentMethod.BANK,
+                        paymentMethod = PaymentMethod.UPI,
                         dateMillis = dateMillis,
                         notes = "Auto-added from work earnings shift"
                     )
@@ -227,6 +409,51 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         viewModelScope.launch {
             repository.deleteWorkShift(shift)
             _uiEvent.emit("Work shift deleted")
+        }
+    }
+
+    // Budget Management
+    fun saveBudget(
+        id: Long = 0,
+        category: String,
+        limitAmountInput: String,
+        notes: String = "",
+        onSuccess: () -> Unit
+    ) {
+        viewModelScope.launch {
+            if (category.isBlank()) {
+                _uiEvent.emit("Please enter a category name")
+                return@launch
+            }
+            if (!MoneyUtils.isValidAmount(limitAmountInput)) {
+                _uiEvent.emit("Please enter a valid monthly limit amount")
+                return@launch
+            }
+
+            val limitPaise = MoneyUtils.parseRupeesToPaise(limitAmountInput)
+
+            val budget = BudgetEntity(
+                id = id,
+                category = category.trim(),
+                limitAmountPaise = limitPaise,
+                notes = notes.trim()
+            )
+
+            if (id == 0L) {
+                repository.insertBudget(budget)
+                _uiEvent.emit("Budget limit set for $category")
+            } else {
+                repository.updateBudget(budget)
+                _uiEvent.emit("Budget updated for $category")
+            }
+            onSuccess()
+        }
+    }
+
+    fun deleteBudget(budget: BudgetEntity) {
+        viewModelScope.launch {
+            repository.deleteBudget(budget)
+            _uiEvent.emit("Budget deleted")
         }
     }
 
@@ -380,6 +607,211 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
             }
             repository.deleteCategory(category)
             _uiEvent.emit("Category removed")
+        }
+    }
+
+    // Investments
+    val allInvestmentHoldings: StateFlow<List<InvestmentHoldingEntity>> = repository.allInvestmentHoldings
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
+
+    val allInvestmentActivities: StateFlow<List<InvestmentActivityEntity>> = repository.allInvestmentActivities
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
+
+    fun saveInvestmentHolding(
+        id: Long = 0L,
+        name: String,
+        type: String,
+        provider: String?,
+        accountReference: String?,
+        initialAmountInput: String,
+        unitsInput: String,
+        navInput: String,
+        currentValueInput: String,
+        schemeCode: String? = null,
+        notes: String,
+        onSuccess: () -> Unit
+    ) {
+        viewModelScope.launch {
+            if (name.isBlank()) {
+                _uiEvent.emit("Please enter investment name")
+                return@launch
+            }
+            if (type.isBlank()) {
+                _uiEvent.emit("Please enter investment type")
+                return@launch
+            }
+            if (!MoneyUtils.isValidAmount(initialAmountInput)) {
+                _uiEvent.emit("Please enter a valid initial amount")
+                return@launch
+            }
+
+            val initialPaise = MoneyUtils.parseRupeesToPaise(initialAmountInput)
+            val units = unitsInput.toDoubleOrNull() ?: 0.0
+            val nav = navInput.toDoubleOrNull() ?: 0.0
+            val currentPaise = if (MoneyUtils.isValidAmount(currentValueInput)) {
+                MoneyUtils.parseRupeesToPaise(currentValueInput)
+            } else if (units > 0.0 && nav > 0.0) {
+                (units * nav * 100.0).toLong()
+            } else {
+                initialPaise
+            }
+
+            val holding = InvestmentHoldingEntity(
+                id = id,
+                name = name.trim(),
+                type = type.trim(),
+                provider = provider?.trim()?.ifBlank { null },
+                accountReference = accountReference?.trim()?.ifBlank { null },
+                investedCostPaise = initialPaise,
+                currentValuePaise = currentPaise,
+                units = units,
+                nav = nav,
+                schemeCode = schemeCode?.trim()?.ifBlank { null },
+                lastValuationDateMillis = System.currentTimeMillis(),
+                notes = notes.trim()
+            )
+
+            if (id == 0L) {
+                val newId = repository.insertInvestmentHolding(holding)
+                val tx = TransactionEntity(
+                    amountPaise = initialPaise,
+                    title = "Investment Purchase: $name",
+                    category = "Investment",
+                    type = TransactionType.EXPENSE,
+                    paymentMethod = PaymentMethod.UPI,
+                    notes = "Initial investment in $type"
+                )
+                val txId = repository.insertTransaction(tx)
+
+                val activity = InvestmentActivityEntity(
+                    holdingId = newId,
+                    activityType = InvestmentActivityType.PURCHASE,
+                    amountPaise = initialPaise,
+                    units = units,
+                    nav = nav,
+                    linkedTransactionId = txId,
+                    notes = "Initial purchase"
+                )
+                repository.insertInvestmentActivity(activity)
+            } else {
+                repository.updateInvestmentHolding(holding)
+            }
+
+            _uiEvent.emit("Investment saved successfully")
+            onSuccess()
+        }
+    }
+
+    fun recordInvestmentActivity(
+        holding: InvestmentHoldingEntity,
+        activityType: InvestmentActivityType,
+        amountInput: String,
+        unitsInput: String,
+        navInput: String,
+        notes: String,
+        onSuccess: () -> Unit
+    ) {
+        viewModelScope.launch {
+            if (!MoneyUtils.isValidAmount(amountInput) && activityType != InvestmentActivityType.VALUATION_UPDATE) {
+                _uiEvent.emit("Please enter a valid amount")
+                return@launch
+            }
+
+            val amountPaise = MoneyUtils.parseRupeesToPaise(amountInput)
+            val units = unitsInput.toDoubleOrNull() ?: 0.0
+            val nav = navInput.toDoubleOrNull() ?: 0.0
+
+            var newCost = holding.investedCostPaise
+            var newCurrent = holding.currentValuePaise
+            var newUnits = holding.units
+
+            var linkedTxId: Long? = null
+
+            when (activityType) {
+                InvestmentActivityType.PURCHASE -> {
+                    newCost += amountPaise
+                    newCurrent += amountPaise
+                    newUnits += units
+
+                    val tx = TransactionEntity(
+                        amountPaise = amountPaise,
+                        title = "Investment Purchase: ${holding.name}",
+                        category = "Investment",
+                        type = TransactionType.EXPENSE,
+                        paymentMethod = PaymentMethod.UPI,
+                        notes = notes.ifBlank { "Additional purchase" }
+                    )
+                    linkedTxId = repository.insertTransaction(tx)
+                }
+                InvestmentActivityType.REDEMPTION -> {
+                    if (amountPaise > holding.currentValuePaise) {
+                        _uiEvent.emit("Redemption amount cannot exceed current holding value")
+                        return@launch
+                    }
+                    val proportion = if (holding.currentValuePaise > 0) amountPaise.toDouble() / holding.currentValuePaise.toDouble() else 1.0
+                    val costReduction = (holding.investedCostPaise * proportion).toLong()
+
+                    newCost = (holding.investedCostPaise - costReduction).coerceAtLeast(0L)
+                    newCurrent = (holding.currentValuePaise - amountPaise).coerceAtLeast(0L)
+                    newUnits = (holding.units - (units.takeIf { it > 0.0 } ?: (holding.units * proportion))).coerceAtLeast(0.0)
+
+                    val tx = TransactionEntity(
+                        amountPaise = amountPaise,
+                        title = "Investment Redemption: ${holding.name}",
+                        category = "Investment",
+                        type = TransactionType.INCOME,
+                        paymentMethod = PaymentMethod.UPI,
+                        notes = notes.ifBlank { "Redemption proceeds" }
+                    )
+                    linkedTxId = repository.insertTransaction(tx)
+                }
+                InvestmentActivityType.DIVIDEND -> {
+                    val tx = TransactionEntity(
+                        amountPaise = amountPaise,
+                        title = "Investment Dividend: ${holding.name}",
+                        category = "Investment Income",
+                        type = TransactionType.INCOME,
+                        paymentMethod = PaymentMethod.UPI,
+                        notes = notes.ifBlank { "Dividend payout" }
+                    )
+                    linkedTxId = repository.insertTransaction(tx)
+                }
+                InvestmentActivityType.VALUATION_UPDATE -> {
+                    newCurrent = amountPaise
+                    if (units > 0.0) newUnits = units
+                }
+            }
+
+            val updatedHolding = holding.copy(
+                investedCostPaise = newCost,
+                currentValuePaise = newCurrent,
+                units = newUnits,
+                nav = if (nav > 0.0) nav else holding.nav,
+                lastValuationDateMillis = System.currentTimeMillis()
+            )
+
+            repository.updateInvestmentHolding(updatedHolding)
+
+            val activity = InvestmentActivityEntity(
+                holdingId = holding.id,
+                activityType = activityType,
+                amountPaise = amountPaise,
+                units = units,
+                nav = nav,
+                linkedTransactionId = linkedTxId,
+                notes = notes.trim()
+            )
+            repository.insertInvestmentActivity(activity)
+
+            _uiEvent.emit("Investment activity recorded")
+            onSuccess()
+        }
+    }
+
+    fun deleteInvestmentHolding(holding: InvestmentHoldingEntity) {
+        viewModelScope.launch {
+            repository.deleteInvestmentHolding(holding)
+            _uiEvent.emit("Investment deleted")
         }
     }
 

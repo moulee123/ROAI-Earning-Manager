@@ -1,0 +1,13 @@
+- `[ ]` Define Database Migration & Schema (Add `originalDescription` and `bankReference`)
+- `[ ]` Update `CandidateTransaction` Model with edit fields
+- `[ ]` Update Build Dependencies (ML Kit OCR)
+- `[ ]` Implement `BankProfile` and `GenericBankProfile` structure
+- `[ ]` Implement `CsvStatementParser`
+- `[ ]` Implement `XlsxStatementParser` (Zero-dependency XML pull parser)
+- `[ ]` Implement `OcrStatementExtractor` (ML Kit)
+- `[ ]` Create `UniversalStatementParser` Coordinator
+- `[ ]` Update `MainViewModel` to use `UniversalStatementParser`
+- `[ ]` Enhance `StatementImportReviewScreen` to allow editing names/reasons
+- `[ ]` Add Import Button & File Picker to `TransactionsScreen`
+- `[ ]` Update `DuplicateDetectionService` to use new robust matching
+- `[ ]` Write Unit Tests for Parsers

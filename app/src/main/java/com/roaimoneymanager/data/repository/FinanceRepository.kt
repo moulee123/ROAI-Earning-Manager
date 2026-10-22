@@ -120,4 +120,47 @@ class FinanceRepository(private val database: AppDatabase) {
     fun getRepaymentsForDebt(debtId: Long): Flow<List<DebtRepaymentEntity>> {
         return database.debtDao().getRepaymentsForDebt(debtId)
     }
+
+    // Budgets
+    val allBudgets: Flow<List<BudgetEntity>> = database.budgetDao().getAllBudgets()
+
+    suspend fun insertBudget(budget: BudgetEntity): Long {
+        return database.budgetDao().insertBudget(budget)
+    }
+
+    suspend fun updateBudget(budget: BudgetEntity) {
+        database.budgetDao().updateBudget(budget)
+    }
+
+    suspend fun deleteBudget(budget: BudgetEntity) {
+        database.budgetDao().deleteBudget(budget)
+    }
+
+    // Investments
+    val allInvestmentHoldings: Flow<List<InvestmentHoldingEntity>> = database.investmentDao().getAllHoldings()
+    val allInvestmentActivities: Flow<List<InvestmentActivityEntity>> = database.investmentDao().getAllActivities()
+
+    suspend fun insertInvestmentHolding(holding: InvestmentHoldingEntity): Long {
+        return database.investmentDao().insertHolding(holding)
+    }
+
+    suspend fun updateInvestmentHolding(holding: InvestmentHoldingEntity) {
+        database.investmentDao().updateHolding(holding)
+    }
+
+    suspend fun deleteInvestmentHolding(holding: InvestmentHoldingEntity) {
+        database.investmentDao().deleteHolding(holding)
+    }
+
+    fun getActivitiesForHolding(holdingId: Long): Flow<List<InvestmentActivityEntity>> {
+        return database.investmentDao().getActivitiesForHolding(holdingId)
+    }
+
+    suspend fun insertInvestmentActivity(activity: InvestmentActivityEntity): Long {
+        return database.investmentDao().insertActivity(activity)
+    }
+
+    suspend fun deleteInvestmentActivity(activity: InvestmentActivityEntity) {
+        database.investmentDao().deleteActivity(activity)
+    }
 }
